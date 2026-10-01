@@ -1,0 +1,16 @@
+{
+  "name": "program-tracker",
+  "version": "0.1.0",
+  "description": "Type a grad program name; get its deadlines and required materials, extracted from the official pages with source evidence.",
+  "type": "module",
+  "license": "MIT",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --env-file=.env server.js",
+    "check": "node --env-file=.env scripts/check-ark.js",
+    "test": "node --test"
+  }
+}

@@ -1,0 +1,380 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>选校追踪 · Program Tracker</title>
+<style>
+  :root{
+    --ink:#0d1522; --panel:#141f30; --panel-2:#1a273b; --line:rgba(233,237,243,.10);
+    --text:#e9edf3; --muted:#8b9ab0; --amber:#e3a857; --green:#7fb88a; --red:#d97b76;
+    --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+    --sans:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei","Segoe UI",Helvetica,Arial,sans-serif;
+    box-sizing:border-box; padding-top:env(safe-area-inset-top,0px); padding-bottom:env(safe-area-inset-bottom,0px);
+  }
+  @media (prefers-color-scheme: light){
+    :root:not([data-theme="dark"]){
+      --ink:#f5f3ee; --panel:#fff; --panel-2:#faf8f3; --line:rgba(20,20,20,.10);
+      --text:#161616; --muted:#6b6458; --amber:#b5751f; --green:#3f7a4d; --red:#b23b34;
+    }
+  }
+  *{box-sizing:border-box}
+  html{scroll-padding-top:env(safe-area-inset-top,0px)}
+  html,body{height:100%}
+  body{margin:0;background:var(--ink);color:var(--text);font-family:var(--sans);-webkit-font-smoothing:antialiased}
+  .wrap{max-width:860px;margin:0 auto;padding:40px 20px 96px}
+  .kicker{font-family:var(--mono);font-size:12px;color:var(--muted);margin:0 0 6px}
+  h1{font-size:24px;margin:0 0 6px}
+  .sub{font-size:13.5px;color:var(--muted);margin:0 0 24px;line-height:1.6}
+  .banner{border:1px solid var(--amber);border-radius:8px;padding:10px 14px;font-size:12.5px;line-height:1.6;color:var(--muted);margin-bottom:14px}
+  .banner strong{color:var(--text)}
+
+  .settings-toggle{display:flex;align-items:center;gap:8px;font-size:12.5px;color:var(--muted);background:none;border:1px dashed var(--line);border-radius:8px;padding:8px 12px;cursor:pointer;margin-bottom:22px;width:100%;text-align:left}
+  .settings-toggle:hover{color:var(--text);border-color:var(--muted)}
+  .settings-toggle .dot{width:7px;height:7px;border-radius:50%;background:var(--red);flex-shrink:0}
+  .settings-toggle.configured .dot{background:var(--green)}
+  .settings{background:var(--panel);border:1px solid var(--amber);border-radius:12px;padding:16px;margin-bottom:22px;display:none}
+  .settings.open{display:block}
+  .settings-note{font-size:12px;color:var(--muted);line-height:1.6;margin:0 0 14px}
+  .settings-note strong{color:var(--text)}
+  .settings-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+  .key-row{display:flex;gap:8px}
+  .key-row input{flex:1}
+  .check-row{display:flex;align-items:center;gap:8px;margin-top:12px;font-size:12.5px;color:var(--muted)}
+  .check-row input{width:auto}
+  select{width:100%;font:inherit;font-size:14px;color:var(--text);background:var(--panel-2);border:1px solid var(--line);border-radius:8px;padding:10px 12px}
+
+  .form{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:16px;margin-bottom:24px}
+  label.f{display:block;font-size:12px;color:var(--muted);margin:0 0 6px}
+  input[type=text],input[type=password],textarea{width:100%;font:inherit;font-size:14px;color:var(--text);background:var(--panel-2);border:1px solid var(--line);border-radius:8px;padding:10px 12px}
+  textarea{min-height:56px;resize:vertical;font-family:var(--mono);font-size:12.5px}
+  input:focus,textarea:focus,select:focus{outline:2px solid var(--amber);outline-offset:0}
+  .row{display:flex;gap:10px;align-items:center;margin-top:12px;flex-wrap:wrap}
+  button{font:inherit;font-size:13px;cursor:pointer;border-radius:8px;padding:9px 16px;border:1px solid var(--line);background:transparent;color:var(--muted)}
+  button:hover{color:var(--text);border-color:var(--muted)}
+  button.primary{background:var(--amber);border-color:var(--amber);color:var(--ink);font-weight:600}
+  button:disabled{opacity:.5;cursor:wait}
+  button.small{padding:9px 12px;font-size:12px}
+  #status{font-size:12.5px;color:var(--muted)}
+  #status.err{color:var(--red);white-space:pre-wrap}
+
+  .next{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:14px 16px;margin-bottom:24px}
+  .next h2{font-size:13px;margin:0 0 8px;color:var(--muted);font-weight:600}
+  .next .item{display:flex;justify-content:space-between;gap:10px;font-size:13px;padding:5px 0;border-top:1px solid var(--line)}
+  .next .item:first-of-type{border-top:none}
+  .days{font-family:var(--mono);color:var(--amber);white-space:nowrap}
+
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:12px;margin-bottom:18px;overflow:hidden}
+  .card-head{display:flex;justify-content:space-between;gap:12px;align-items:flex-start;padding:16px 18px;flex-wrap:wrap}
+  .card-title{font-size:15.5px;font-weight:700}
+  .card-sub{font-size:12.5px;color:var(--muted);margin-top:3px}
+  .card-actions{display:flex;gap:8px}
+  .card-actions button{padding:6px 12px;font-size:12px}
+  .card-body{padding:0 18px 18px;border-top:1px solid var(--line)}
+  h3{font-size:12px;color:var(--muted);font-weight:600;margin:16px 0 6px;letter-spacing:.02em}
+  .line{padding:9px 0;border-bottom:1px solid var(--line);font-size:13.5px}
+  .line:last-child{border-bottom:none}
+  .line-top{display:flex;gap:10px;align-items:flex-start}
+  .line-top .grow{flex:1}
+  .ev{font-size:11.5px;color:var(--muted);margin-top:4px;line-height:1.5;font-family:var(--mono)}
+  .note{font-size:11.5px;color:var(--red);margin-top:3px}
+  .badge{font-size:10.5px;border-radius:20px;padding:1px 8px;border:1px solid var(--line);color:var(--muted);white-space:nowrap}
+  .badge.verified{color:var(--green);border-color:var(--green)}
+  .badge.unverified{color:var(--amber);border-color:var(--amber)}
+  .tag{font-family:var(--mono);font-size:10.5px;color:var(--muted);border:1px solid var(--line);border-radius:4px;padding:1px 6px;white-space:nowrap}
+  .tag.yes{color:var(--text)}
+  input[type=checkbox]{appearance:none;-webkit-appearance:none;width:16px;height:16px;min-width:16px;margin-top:2px;border:1px solid var(--muted);border-radius:4px;background:transparent;cursor:pointer;position:relative}
+  input[type=checkbox]:checked{background:var(--amber);border-color:var(--amber)}
+  input[type=checkbox]:checked::after{content:"";position:absolute;left:5px;top:1px;width:4px;height:8px;border:solid var(--ink);border-width:0 2px 2px 0;transform:rotate(45deg)}
+  .line.done .item-text{color:var(--muted);text-decoration:line-through}
+  .facts{display:grid;grid-template-columns:1fr 1fr;gap:10px 20px}
+  .fact .k{font-size:11.5px;color:var(--muted);margin-bottom:2px}
+  .sources a,.line a{color:var(--muted);font-size:12px;word-break:break-all}
+  .warn{font-size:12px;color:var(--muted);padding:3px 0}
+  footer{margin-top:32px;padding-top:16px;border-top:1px solid var(--line);font-size:12px;color:var(--muted);display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap}
+  @media (max-width:560px){.wrap{padding:28px 14px 72px}.facts{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <p class="kicker">PROGRAM TRACKER</p>
+  <h1>选校追踪</h1>
+  <p class="sub">输入学校和项目名，自动读取官网招生页面，整理出截止日期和申请材料。每一项都附带官网原文引用，并检查引用是否真的出现在页面上。</p>
+
+  <div class="banner"><strong>请以官网为准。</strong> 结果由 AI 从网页中提取，可能出错。标着"未能核对"的条目一定要打开官网确认；"官网原文已核对"只说明引用确实在页面上，不代表页面本身没有过期。</div>
+
+  <button class="settings-toggle" id="settingsToggle" type="button">
+    <span class="dot" id="settingsDot"></span>
+    <span id="settingsToggleText">⚙ 设置你的 AI Key（必填，点击展开）</span>
+  </button>
+
+  <div class="settings" id="settingsPanel">
+    <p class="settings-note">
+      <strong>这个网站不提供共享的 AI Key。</strong> 查询时需要你自己的豆包（火山方舟）或 Claude API Key，
+      它只会和这次查询一起发给这个网站自己的服务器，再由服务器转发给你选的模型服务商，不会被服务器记录或保存。
+      勾选"记住"后会<strong>明文保存在你自己浏览器的本地存储里</strong>——公共电脑上不建议勾选。
+    </p>
+    <div class="settings-grid">
+      <div>
+        <label class="f" for="provider">模型服务商</label>
+        <select id="provider">
+          <option value="ark">豆包（火山方舟 / Ark）</option>
+          <option value="anthropic">Claude（Anthropic）</option>
+        </select>
+      </div>
+      <div>
+        <label class="f" for="model">模型名称（可选，留空用网站默认）</label>
+        <input id="model" type="text" placeholder="例如 ep-xxxx 或 claude-sonnet-5" autocomplete="off">
+      </div>
+    </div>
+    <div style="height:12px"></div>
+    <label class="f" for="apiKey">API Key</label>
+    <div class="key-row">
+      <input id="apiKey" type="password" placeholder="粘贴你的 API Key" autocomplete="off" spellcheck="false">
+      <button class="small" id="toggleKeyVisibility" type="button">显示</button>
+    </div>
+    <div class="check-row">
+      <input id="rememberKey" type="checkbox">
+      <label for="rememberKey">记住在本设备（否则关闭标签页就清空）</label>
+    </div>
+    <div class="check-row">
+      <input id="useSearch" type="checkbox">
+      <label for="useSearch">没填官网链接时，允许用这个 Key 自动搜索官网（默认关闭：豆包搜索对英文大学官网的命中不稳定，建议先手动粘贴链接）</label>
+    </div>
+  </div>
+
+  <div class="form">
+    <label class="f" for="q">学校 + 项目</label>
+    <input id="q" type="text" placeholder="例如：Michigan IOE MS" autocomplete="off" maxlength="200">
+    <div style="height:12px"></div>
+    <label class="f" for="u">官网链接（可选，每行一个，最多 3 个。自动搜索找不到时，粘贴招生要求页面）</label>
+    <textarea id="u" placeholder="https://..."></textarea>
+    <div class="row">
+      <button class="primary" id="go">查询</button>
+      <button id="export">导出 JSON</button>
+      <span id="status"></span>
+    </div>
+  </div>
+
+  <div id="next"></div>
+  <div id="list"></div>
+
+  <footer>
+    <span>查询结果、勾选状态和（如果你选择"记住"）API Key，都只保存在你自己的浏览器里。</span>
+    <button id="clear">清空全部</button>
+  </footer>
+</div>
+
+<script>
+(function(){
+  var KEY = 'program-tracker-v1';
+  var CRED_KEY = 'program-tracker-credentials-v1';
+  var STATUS = { verified:'官网原文已核对', unverified:'未能核对，请查看官网', not_found:'官网未找到' };
+  var REQ = { yes:'必需', no:'不需要', optional:'可选', unknown:'未说明' };
+  var FACT = { gre:'GRE / GMAT', english:'英语成绩', letters:'推荐信', fee:'申请费' };
+  var state = load();
+
+  function load(){ try { return JSON.parse(localStorage.getItem(KEY)) || []; } catch(e){ return []; } }
+  function save(){ try { localStorage.setItem(KEY, JSON.stringify(state)); } catch(e){} }
+  function $(id){ return document.getElementById(id); }
+
+  // ---- BYOK: credentials live only in this browser, in memory by default; only written
+  // to localStorage if the visitor checks "remember". Never sent anywhere except our own
+  // /api/research call, and never included in the exported JSON. ----
+  var creds = { provider:'ark', apiKey:'', model:'', remember:false, useSearch:false };
+  try {
+    var storedCreds = JSON.parse(localStorage.getItem(CRED_KEY) || 'null');
+    if (storedCreds && typeof storedCreds === 'object') { creds = Object.assign(creds, storedCreds); creds.remember = true; }
+  } catch(e) {}
+
+  function applyCredsToForm(){
+    $('provider').value = creds.provider;
+    $('model').value = creds.model;
+    $('apiKey').value = creds.apiKey;
+    $('rememberKey').checked = creds.remember;
+    $('useSearch').checked = creds.useSearch;
+    updateSettingsDot();
+  }
+  function readCredsFromForm(){
+    creds.provider = $('provider').value;
+    creds.model = $('model').value.trim();
+    creds.apiKey = $('apiKey').value.trim();
+    creds.remember = $('rememberKey').checked;
+    creds.useSearch = $('useSearch').checked;
+    if (creds.remember) { try { localStorage.setItem(CRED_KEY, JSON.stringify(creds)); } catch(e){} }
+    else { try { localStorage.removeItem(CRED_KEY); } catch(e){} }
+    updateSettingsDot();
+  }
+  function updateSettingsDot(){
+    var configured = creds.apiKey.length > 0;
+    $('settingsToggle').classList.toggle('configured', configured);
+    $('settingsToggleText').textContent = configured
+      ? '⚙ 已设置 ' + (creds.provider === 'anthropic' ? 'Claude' : '豆包') + ' Key（点击修改）'
+      : '⚙ 设置你的 AI Key（必填，点击展开）';
+  }
+  function openSettings(){ $('settingsPanel').classList.add('open'); }
+
+  applyCredsToForm();
+  ['provider','model','apiKey','rememberKey','useSearch'].forEach(function(id){
+    $(id).addEventListener('change', readCredsFromForm);
+  });
+  $('apiKey').addEventListener('input', readCredsFromForm);
+  $('settingsToggle').addEventListener('click', function(){ $('settingsPanel').classList.toggle('open'); });
+  $('toggleKeyVisibility').addEventListener('click', function(){
+    var input = $('apiKey');
+    var showing = input.type === 'text';
+    input.type = showing ? 'password' : 'text';
+    $('toggleKeyVisibility').textContent = showing ? '显示' : '隐藏';
+  });
+  if (!creds.apiKey) openSettings();
+  function el(tag, cls, text){ var n = document.createElement(tag); if(cls) n.className = cls; if(text != null) n.textContent = text; return n; }
+  function safeHref(u){ return /^https?:\/\//i.test(u) ? u : null; }
+  function link(url, text){
+    var h = safeHref(url); if(!h) return el('span','',text || url);
+    var a = el('a','',text || url); a.href = h; a.target = '_blank'; a.rel = 'noopener noreferrer'; return a;
+  }
+  function badge(status){ return el('span','badge ' + status, STATUS[status] || status); }
+  function today(){ var d = new Date(); d.setHours(0,0,0,0); return d; }
+  function parseDate(s){ var p = s.split('-'); return new Date(+p[0], +p[1]-1, +p[2]); }
+  function daysLeft(s){ return Math.ceil((parseDate(s) - today()) / 86400000); }
+
+  function evidence(text, url){
+    if(!text) return null;
+    var d = el('div','ev','原文：“' + text + '”');
+    return d;
+  }
+
+  function renderNext(){
+    var box = $('next'); box.textContent = '';
+    var all = [];
+    state.forEach(function(p){ p.result.data.deadlines.forEach(function(d){ var n = daysLeft(d.date); if(n >= 0) all.push({p:p, d:d, n:n}); }); });
+    all.sort(function(a,b){ return a.n - b.n; });
+    if(!all.length) return;
+    var wrap = el('div','next'); wrap.appendChild(el('h2','','最近的截止日期'));
+    all.slice(0,6).forEach(function(x){
+      var row = el('div','item');
+      row.appendChild(el('span','', (x.p.result.data.program || x.p.query) + ' · ' + x.d.label + (x.d.status !== 'verified' ? '（未核对）' : '')));
+      row.appendChild(el('span','days', x.n + ' 天 · ' + x.d.date));
+      wrap.appendChild(row);
+    });
+    box.appendChild(wrap);
+  }
+
+  function renderCard(p, idx){
+    var r = p.result, d = r.data;
+    var card = el('div','card');
+    var head = el('div','card-head');
+    var left = el('div');
+    left.appendChild(el('div','card-title', d.program || p.query));
+    left.appendChild(el('div','card-sub', [d.university, d.degree].filter(Boolean).join(' · ') + (d.university||d.degree ? ' · ' : '') + '生成于 ' + r.generatedAt.slice(0,10) + (r.cached ? '（缓存）' : '')));
+    head.appendChild(left);
+    var acts = el('div','card-actions');
+    var re = el('button','','重新查询'); re.onclick = function(){ $('q').value = p.query; $('u').value = (p.urls||[]).join('\n'); run(true); };
+    var rm = el('button','','删除'); rm.onclick = function(){ state.splice(idx,1); save(); render(); };
+    acts.appendChild(re); acts.appendChild(rm); head.appendChild(acts); card.appendChild(head);
+
+    var body = el('div','card-body');
+
+    body.appendChild(el('h3','','截止日期'));
+    if(!d.deadlines.length) body.appendChild(el('div','warn','官网页面里没有找到明确的截止日期。'));
+    d.deadlines.forEach(function(x){
+      var line = el('div','line'), top = el('div','line-top'), g = el('div','grow');
+      var n = daysLeft(x.date);
+      g.appendChild(el('div','', x.label + ' — ' + x.date + (n >= 0 ? '（还有 ' + n + ' 天）' : '（已过）')));
+      var e = evidence(x.evidence); if(e) g.appendChild(e);
+      if(x.note) g.appendChild(el('div','note', x.note));
+      top.appendChild(g); top.appendChild(badge(x.status)); line.appendChild(top); body.appendChild(line);
+    });
+
+    body.appendChild(el('h3','','申请材料（勾选表示已完成）'));
+    p.checked = p.checked || {};
+    d.materials.forEach(function(m){
+      var line = el('div','line' + (p.checked[m.item] ? ' done' : '')), top = el('div','line-top');
+      var cb = document.createElement('input'); cb.type = 'checkbox'; cb.checked = !!p.checked[m.item];
+      cb.onchange = function(){ p.checked[m.item] = cb.checked; line.className = 'line' + (cb.checked ? ' done' : ''); save(); };
+      var g = el('div','grow');
+      g.appendChild(el('div','item-text', m.item + (m.detail ? '：' + m.detail : '')));
+      var e = evidence(m.evidence); if(e) g.appendChild(e);
+      top.appendChild(cb); top.appendChild(g);
+      top.appendChild(el('span','tag ' + m.required, REQ[m.required]));
+      top.appendChild(badge(m.status));
+      line.appendChild(top); body.appendChild(line);
+    });
+    if(!d.materials.length) body.appendChild(el('div','warn','没有提取到材料清单。'));
+
+    body.appendChild(el('h3','','关键要求'));
+    var facts = el('div','facts');
+    Object.keys(FACT).forEach(function(k){
+      var f = d.facts[k]; var box = el('div','fact');
+      box.appendChild(el('div','k',FACT[k]));
+      box.appendChild(el('div','', f.value || '官网未找到'));
+      box.appendChild(badge(f.status));
+      var e = evidence(f.evidence); if(e) box.appendChild(e);
+      facts.appendChild(box);
+    });
+    body.appendChild(facts);
+
+    if(d.warnings.length){
+      body.appendChild(el('h3','','提示'));
+      d.warnings.forEach(function(w){ body.appendChild(el('div','warn','• ' + w)); });
+    }
+
+    body.appendChild(el('h3','','读取的官网页面'));
+    var src = el('div','sources');
+    r.sources.forEach(function(s){ var row = el('div'); row.appendChild(link(s.url)); src.appendChild(row); });
+    body.appendChild(src);
+
+    card.appendChild(body);
+    return card;
+  }
+
+  function render(){
+    renderNext();
+    var list = $('list'); list.textContent = '';
+    state.forEach(function(p, i){ list.appendChild(renderCard(p, i)); });
+  }
+
+  async function run(force){
+    var query = $('q').value.trim();
+    var urls = $('u').value.split('\n').map(function(s){ return s.trim(); }).filter(Boolean);
+    var status = $('status'), btn = $('go');
+    if(query.length < 3){ status.className = 'err'; status.textContent = '请输入学校和项目名称'; return; }
+    if(!creds.apiKey){ status.className = 'err'; status.textContent = '请先在上面的设置里填写你的 API Key'; openSettings(); return; }
+    btn.disabled = true; status.className = ''; status.textContent = '正在查找并读取官网页面，通常需要 30–90 秒…';
+    try {
+      var res = await fetch('/api/research', {
+        method:'POST', headers:{'content-type':'application/json'},
+        body: JSON.stringify({
+          query: query, urls: urls,
+          provider: creds.provider, apiKey: creds.apiKey, model: creds.model, useSearch: creds.useSearch,
+        }),
+      });
+      var json = await res.json();
+      if(!res.ok){
+        if(json.code === 'missing_api_key' || json.code === 'missing_model' || json.code === 'upstream_error') openSettings();
+        throw new Error(json.error || ('请求失败 ' + res.status));
+      }
+      var key = query.toLowerCase();
+      var at = state.findIndex(function(p){ return p.query.toLowerCase() === key; });
+      var entry = { query: query, urls: urls, result: json, checked: at >= 0 ? state[at].checked : {} };
+      if(at >= 0) state[at] = entry; else state.unshift(entry);
+      save(); render();
+      status.textContent = '完成。';
+      $('q').value = ''; $('u').value = '';
+    } catch(e){
+      status.className = 'err'; status.textContent = e.message;
+    } finally { btn.disabled = false; }
+  }
+
+  $('go').onclick = function(){ run(false); };
+  $('q').addEventListener('keydown', function(e){ if(e.key === 'Enter') run(false); });
+  $('export').onclick = function(){
+    var blob = new Blob([JSON.stringify(state, null, 2)], { type:'application/json' });
+    var a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'programs.json'; a.click();
+  };
+  $('clear').onclick = function(){ if(confirm('确定清空所有已保存的项目吗？')){ state = []; save(); render(); } };
+  render();
+})();
+</script>
+</body>
+</html>
